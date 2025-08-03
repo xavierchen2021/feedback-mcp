@@ -58,16 +58,13 @@ def launch_feedback_ui(project_directory: str, summary: str) -> dict[str, str]:
             os.unlink(output_file)
         raise e
 
-def first_line(text: str) -> str:
-    return text.split("\n")[0].strip()
-
 @mcp.tool()
 def interactive_feedback(
     project_directory: Annotated[str, Field(description="Full path to the project directory")],
-    summary: Annotated[str, Field(description="Short, one-line summary of the changes")],
+    summary: Annotated[str, Field(description="Summary of the changes - can be multi-line")],
 ) -> Dict[str, str]:
     """Request interactive feedback for a given project directory and summary"""
-    return launch_feedback_ui(first_line(project_directory), first_line(summary))
+    return launch_feedback_ui(project_directory.strip(), summary.strip())
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

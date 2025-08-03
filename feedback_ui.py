@@ -13,7 +13,8 @@ from typing import Optional, TypedDict
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QCheckBox, QTextEdit, QGroupBox
+    QLabel, QLineEdit, QPushButton, QCheckBox, QTextEdit, QGroupBox,
+    QScrollArea, QFrame
 )
 from PySide6.QtCore import Qt, Signal, QObject, QTimer, QSettings
 from PySide6.QtGui import QTextCursor, QIcon, QKeyEvent, QFont, QFontDatabase, QPalette, QColor
@@ -357,10 +358,34 @@ class FeedbackUI(QMainWindow):
         self.feedback_group = QGroupBox("Feedback")
         feedback_layout = QVBoxLayout(self.feedback_group)
 
-        # Short description label (from self.prompt)
+        # Short description label (from self.prompt) with scroll support for long text
+        self.description_scroll = QScrollArea()
+        self.description_scroll.setWidgetResizable(True)
+        self.description_scroll.setFrameShape(QFrame.NoFrame)
+        self.description_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.description_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
         self.description_label = QLabel(self.prompt)
         self.description_label.setWordWrap(True)
-        feedback_layout.addWidget(self.description_label)
+        self.description_label.setAlignment(Qt.AlignTop)
+        self.description_label.setMargin(5)  # 添加一些内边距
+        self.description_scroll.setWidget(self.description_label)
+        
+        # 计算文本行数，如果超过15行则限制高度并显示滚动条
+        font_metrics = self.description_label.fontMetrics()
+        line_height = font_metrics.height()
+        text_lines = self.prompt.count('\n') + 1  # 计算换行符数量加1
+        
+        if text_lines > 15:
+            # 如果文本超过15行，设置最大高度为15行的高度
+            max_height = 15 * line_height + 20  # 20是额外的内边距
+            self.description_scroll.setMaximumHeight(max_height)
+        else:
+            # 如果文本不超过15行，设置高度为实际文本高度
+            actual_height = text_lines * line_height + 20
+            self.description_scroll.setMaximumHeight(actual_height)
+        
+        feedback_layout.addWidget(self.description_scroll)
 
         self.feedback_text = FeedbackTextEdit()
         font_metrics = self.feedback_text.fontMetrics()
@@ -377,8 +402,8 @@ class FeedbackUI(QMainWindow):
         feedback_layout.addWidget(submit_button)
 
         # Set minimum height for feedback_group to accommodate its contents
-        # This will be based on the description label and the 5-line feedback_text
-        self.feedback_group.setMinimumHeight(self.description_label.sizeHint().height() + self.feedback_text.minimumHeight() + submit_button.sizeHint().height() + feedback_layout.spacing() * 2 + feedback_layout.contentsMargins().top() + feedback_layout.contentsMargins().bottom() + 10) # 10 for extra padding
+        # This will be based on the description scroll area and the 5-line feedback_text
+        self.feedback_group.setMinimumHeight(self.description_scroll.maximumHeight() + self.feedback_text.minimumHeight() + submit_button.sizeHint().height() + feedback_layout.spacing() * 2 + feedback_layout.contentsMargins().top() + feedback_layout.contentsMargins().bottom() + 10) # 10 for extra padding
 
         # Add widgets in a specific order
         layout.addWidget(self.feedback_group)
